@@ -23,6 +23,7 @@ jobs:
       - name: Init & Sync Repo
         run: |
           mkdir -p bliss && cd bliss
+          export REPO_NO_SELFUPDATE=1
           repo init -u https://github.com/BlissOS/platform_manifest.git -b typhoon-x86
           repo sync -c --force-sync --no-tags --no-clone-bundle --optimized-fetch --prune -j$(nproc)
           repo forall -c git lfs pull
