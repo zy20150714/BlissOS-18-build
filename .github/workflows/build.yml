@@ -1,10 +1,10 @@
-name: Build BlissOS18 typhoon-x86 Emu-GApps ISO
+name: Build BlissOS18 voyager-x86 Android15 GApps ISO
 on: workflow_dispatch
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 480
     steps:
       - name: Set up job
         uses: actions/checkout@v4
@@ -82,14 +82,14 @@ jobs:
           echo "【依赖安装】二次更新apt索引"
           sudo apt update
           echo ""
-          echo "【依赖安装】开始安装AOSP/BlissOS编译全套依赖包"
+          echo "【依赖安装】开始安装AOSP/BlissOS18编译全套依赖包"
           sudo apt install -y git curl gnupg flex bison gperf build-essential zip \
           zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev \
           x11proto-core-dev libx11-dev lib32z-dev libgl1-mesa-dev libxml2-utils xsltproc unzip python3
           echo ""
           echo "✅ 编译依赖全部安装完成"
 
-      - name: 📥 Fetch local repo script | 下载repo工具
+      - name: 📥 Fetch local repo script | 下载repo工具 + Git基础配置
         run: |
           set -e
           echo "============================================="
@@ -100,26 +100,33 @@ jobs:
           echo "✅ repo脚本下载+赋权完成"
           echo "repo版本信息:"
           ./repo --version
+          echo ""
+          echo "【Git配置】设置全局git身份，消除交互式认证弹窗"
+          git config --global user.name "Github Actions Builder"
+          git config --global user.email "builder@actions.local"
+          git config --global core.compression -1
+          git config --global http.postBuffer 524288000
+          echo "✅ Git全局配置完成"
 
-      - name: 🔄 Repo Init | 初始化BlissOS源码清单【修复manifest地址】
+      - name: 🔄 Repo Init | 初始化BlissOS18 voyager-x86【✅官方正确参数】
         run: |
           set -e
           echo "============================================="
-          echo "【Repo Init】初始化manifest仓库，分支 typhoon-x86"
+          echo "【Repo Init】初始化manifest仓库，分支 voyager-x86 (BlissOS18 Android15)"
           echo "============================================="
-          ./repo init -u https://github.com/BlissRoms-x86/manifest.git -b typhoon-x86 --depth=1
+          ./repo init -u https://github.com/BlissOS/platform_manifest.git -b voyager-x86 --git-lfs
           echo "✅ repo init 执行完成"
 
-      - name: 🔁 Repo Sync (Verbose详细日志，实时输出) | 拉取源码
+      - name: 🔁 Repo Sync (Verbose详细日志，防断连增强参数) | 拉取源码
         run: |
           set -e
           echo "============================================="
-          echo "【Repo Sync】开始同步源码，开启verbose详细输出"
+          echo "【Repo Sync】开始同步源码，开启verbose详细输出，增加防失败参数"
           echo "============================================="
-          ./repo sync -c -j$(nproc) --verbose
+          ./repo sync -c -j$(nproc) --verbose --force-sync --no-tags --no-clone-bundle --optimized-fetch --prune
           echo "✅ repo sync 源码同步全部完成"
 
-      - name: 🏗️ Build GApps ISO | 编译BlissOS镜像
+      - name: 🏗️ Build GApps ISO | 编译BlissOS18镜像【✅ voyager专用 mka iso_img】
         run: |
           set -e
           echo "============================================="
@@ -130,8 +137,8 @@ jobs:
           echo "【编译】选定产品 lunch bliss_x86_64-userdebug"
           lunch bliss_x86_64-userdebug
           echo ""
-          echo "【编译】开始 make iso 编译镜像，并行数 -j$(nproc)"
-          make iso -j$(nproc)
+          echo "【编译】开始 mka iso_img 编译镜像，自动并行"
+          mka iso_img
           echo ""
           echo "✅ ISO镜像编译完成"
           echo "扫描输出目录:"
@@ -140,11 +147,11 @@ jobs:
       - name: 📤 Upload ISO | 上传成品ISO为制品
         uses: actions/upload-artifact@v4
         with:
-          name: BlissOS18-typhoon-x86-GApps
+          name: BlissOS18-voyager-x86-GApps
           path: out/target/product/x86_64/*.iso
 
       - name: ✅ Complete job | 任务收尾标记
         run: |
           echo "============================================="
-          echo "🎉 整个编译流水线全部执行结束！"
+          echo "🎉 BlissOS18 完整编译流水线全部执行结束！"
           echo "============================================="
