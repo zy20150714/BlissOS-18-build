@@ -16,9 +16,16 @@ jobs:
           sudo apt update
           sudo dpkg --add-architecture i386
           sudo apt update
-          sudo apt install -y git repo gnupg flex bison gperf build-essential zip \
-          curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev \
+          sudo apt install -y git curl gnupg flex bison gperf build-essential zip \
+          zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev \
           x11proto-core-dev libx11-dev lib32z-dev libgl1-mesa-dev libxml2-utils xsltproc unzip python-is-python3
+
+      - name: Fetch local repo script (BYPASS system /usr/bin/repo)
+        run: |
+          mkdir -p ~/.local/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/.local/bin/repo
+          chmod a+rx ~/.local/bin/repo
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Init & Sync Repo
         run: |
