@@ -9,16 +9,10 @@ jobs:
       - name: Set up job
         uses: actions/checkout@v4
 
-      - name: Free pre-installed bloat to save disk
+      - name: Fast & Full Clean Preinstalled Bloat
         run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo nice -n 19 ionice -c3 find /usr/local/lib/android /usr/share/dotnet /opt/hostedtoolcache /opt/ghc /usr/local/share/boost -mindepth 1 -delete
           sudo apt clean
-          sudo apt autoremove -y
 
       - name: Maximize build space
         uses: easimon/maximize-build-space@v10
@@ -40,7 +34,6 @@ jobs:
 
       - name: Fetch local repo script
         run: |
-          # 此处填入你原本拉取repo脚本的命令
           curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo > ./repo
           chmod +x ./repo
 
@@ -54,7 +47,6 @@ jobs:
 
       - name: Build GApps ISO
         run: |
-          # 替换成你原来BlissOS编译目标命令
           source build/envsetup.sh
           lunch bliss_x86_64-userdebug
           make iso -j$(nproc)
