@@ -5,9 +5,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # 全局超时兜底，最多90分钟自动终止，防止死循环挂机
     timeout-minutes: 90
     steps:
+      # ==========【新增：优先清理系统冗余，释放大量空间，解决apt爆盘】==========
+      - name: Free pre-installed bloat to save disk
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo apt clean
+
       - name: Maximize build space
         uses: easimon/maximize-build-space@v10
         with:
