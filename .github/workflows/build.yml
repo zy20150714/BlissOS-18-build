@@ -101,13 +101,13 @@ jobs:
           echo "repo版本信息:"
           ./repo --version
 
-      - name: 🔄 Repo Init | 初始化BlissOS源码清单
+      - name: 🔄 Repo Init | 初始化BlissOS源码清单【修复manifest地址】
         run: |
           set -e
           echo "============================================="
           echo "【Repo Init】初始化manifest仓库，分支 typhoon-x86"
           echo "============================================="
-          ./repo init -u https://github.com/BlissOS/manifest.git -b typhoon-x86 --depth=1
+          ./repo init -u https://github.com/BlissRoms-x86/manifest.git -b typhoon-x86 --depth=1
           echo "✅ repo init 执行完成"
 
       - name: 🔁 Repo Sync (Verbose详细日志，实时输出) | 拉取源码
