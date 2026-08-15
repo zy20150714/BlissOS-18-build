@@ -1,20 +1,22 @@
 name: Build BlissOS18 typhoon-x86 Emu-GApps ISO
 on:
-  workflow_dispatch: # 手动点击触发
+  workflow_dispatch: # 仅手动点击触发
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Maximize build disk space
-        uses: easimon/maximize-build-disk-space@v10
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v10
         with:
           swap-size-gb: 16
 
-      - name: Install AOSP/BlissOS 编译依赖
+      - name: Install AOSP/BlissOS 编译依赖 + OpenJDK8（AOSP必须）
         run: |
           sudo apt update
-          sudo apt install -y git repo gnupg flex bison gperf build-essential zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses6-dev x11proto-core-dev libx11-dev lib32z-dev ccache libgl1-mesa-dev libxml2-utils xsltproc unzip squashfs-tools python3-mako libssl-dev ninja-build lunzip syslinux syslinux-utils gettext genisoimage bc xorriso xmlstarlet meson glslang-tools git-lfs libncurses6 libncurses6:i386 libelf-dev aapt zstd rdfind nasm
+          sudo apt install -y git repo gnupg flex bison gperf build-essential zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses6-dev x11proto-core-dev libx11-dev lib32z-dev ccache libgl1-mesa-dev libxml2-utils xsltproc unzip squashfs-tools python3-mako libssl-dev ninja-build lunzip syslinux syslinux-utils gettext genisoimage bc xorriso xmlstarlet meson glslang-tools git-lfs libncurses6 libncurses6:i386 libelf-dev aapt zstd rdfind nasm openjdk-8-jdk-headless
+          update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/bin/java
+          update-alternatives --set javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac
 
       - name: Init & Sync Repo + 拉取GApps LFS资源
         run: |
