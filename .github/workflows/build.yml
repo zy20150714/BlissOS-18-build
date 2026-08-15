@@ -20,18 +20,23 @@ jobs:
           zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev \
           x11proto-core-dev libx11-dev lib32z-dev libgl1-mesa-dev libxml2-utils xsltproc unzip python-is-python3
 
-      - name: Fetch local repo script (BYPASS system /usr/bin/repo)
+      - name: Fetch local repo script
         run: |
           mkdir -p ~/.local/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/.local/bin/repo
           chmod a+rx ~/.local/bin/repo
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Init & Sync Repo
+      - name: Repo Init
         run: |
           mkdir -p bliss && cd bliss
           export REPO_NO_SELFUPDATE=1
           repo init -u https://github.com/BlissOS/platform_manifest.git -b typhoon-x86
+
+      - name: Repo Sync
+        run: |
+          cd bliss
+          export REPO_NO_SELFUPDATE=1
           repo sync -c --force-sync --no-tags --no-clone-bundle --optimized-fetch --prune -j$(nproc)
           repo forall -c git lfs pull
 
