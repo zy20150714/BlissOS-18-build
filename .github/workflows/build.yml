@@ -9,12 +9,57 @@ jobs:
       - name: Set up job
         uses: actions/checkout@v4
 
-      - name: Fast & Full Clean Preinstalled Bloat
+      - name: 🧹 Fast & Full Clean Preinstalled Bloat | 详细日志输出
         run: |
-          sudo nice -n 19 ionice -c3 find /usr/local/lib/android /usr/share/dotnet /opt/hostedtoolcache /opt/ghc /usr/local/share/boost -mindepth 1 -delete
-          sudo apt clean
+          set -e
+          echo "============================================="
+          echo "【01】清理开始 | 打印清理前全局磁盘信息"
+          echo "============================================="
+          df -h
+          echo ""
+          echo "【02】待清理目录列表加载"
+          targets=(
+            "/usr/local/lib/android"
+            "/usr/share/dotnet"
+            "/opt/hostedtoolcache"
+            "/opt/ghc"
+            "/usr/local/share/boost"
+          )
+          echo "待清理清单：${targets[*]}"
+          echo ""
 
-      - name: Maximize build space
+          for dir in "${targets[@]}"; do
+            echo "---------------------------------------------"
+            echo "正在检查目录: $dir"
+            if [ -d "$dir" ]; then
+              echo "✅ 目录存在，开始批量删除: $dir"
+              sudo nice -n 19 ionice -c3 find "$dir" -mindepth 1 -delete
+              echo "✅ $dir 清理完成"
+            else
+              echo "❌ 目录不存在，跳过: $dir"
+            fi
+            echo "---------------------------------------------"
+            echo ""
+          done
+
+          echo "【03】清理临时目录 /tmp 与用户缓存 ~/.cache"
+          sudo rm -rf /tmp/* ~/.cache/*
+          echo "✅ 临时目录清理完毕"
+          echo ""
+
+          echo "【04】执行 apt clean 清理apt缓存"
+          sudo apt clean
+          echo "✅ apt缓存清理完毕"
+          echo ""
+
+          echo "============================================="
+          echo "【05】清理结束 | 打印清理后全局磁盘信息"
+          echo "============================================="
+          df -h
+          echo ""
+          echo "🧹 全部清理流程执行完毕"
+
+      - name: 📈 Maximize build space | 扩容+Swap配置
         uses: easimon/maximize-build-space@v10
         with:
           swap-size-mb: 16384
@@ -23,39 +68,83 @@ jobs:
           remove-haskell: true
           remove-codeql: true
 
-      - name: Install build dependencies
+      - name: 📦 Install build dependencies | 安装编译依赖
         run: |
+          set -e
+          echo "============================================="
+          echo "【依赖安装】开始更新apt源"
+          echo "============================================="
           sudo apt update
+          echo ""
+          echo "【依赖安装】启用i386多架构支持"
           sudo dpkg --add-architecture i386
+          echo ""
+          echo "【依赖安装】二次更新apt索引"
           sudo apt update
+          echo ""
+          echo "【依赖安装】开始安装AOSP/BlissOS编译全套依赖包"
           sudo apt install -y git curl gnupg flex bison gperf build-essential zip \
           zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev \
           x11proto-core-dev libx11-dev lib32z-dev libgl1-mesa-dev libxml2-utils xsltproc unzip python3
+          echo ""
+          echo "✅ 编译依赖全部安装完成"
 
-      - name: Fetch local repo script
+      - name: 📥 Fetch local repo script | 下载repo工具
         run: |
+          set -e
+          echo "============================================="
+          echo "【Repo工具】开始下载git-repo脚本"
+          echo "============================================="
           curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo > ./repo
           chmod +x ./repo
+          echo "✅ repo脚本下载+赋权完成"
+          echo "repo版本信息:"
+          ./repo --version
 
-      - name: Repo Init
+      - name: 🔄 Repo Init | 初始化BlissOS源码清单
         run: |
+          set -e
+          echo "============================================="
+          echo "【Repo Init】初始化manifest仓库，分支 typhoon-x86"
+          echo "============================================="
           ./repo init -u https://github.com/BlissOS/manifest.git -b typhoon-x86 --depth=1
+          echo "✅ repo init 执行完成"
 
-      - name: Repo Sync (Verbose详细日志，实时输出)
+      - name: 🔁 Repo Sync (Verbose详细日志，实时输出) | 拉取源码
         run: |
+          set -e
+          echo "============================================="
+          echo "【Repo Sync】开始同步源码，开启verbose详细输出"
+          echo "============================================="
           ./repo sync -c -j$(nproc) --verbose
+          echo "✅ repo sync 源码同步全部完成"
 
-      - name: Build GApps ISO
+      - name: 🏗️ Build GApps ISO | 编译BlissOS镜像
         run: |
+          set -e
+          echo "============================================="
+          echo "【编译】加载Android编译环境 envsetup.sh"
+          echo "============================================="
           source build/envsetup.sh
+          echo ""
+          echo "【编译】选定产品 lunch bliss_x86_64-userdebug"
           lunch bliss_x86_64-userdebug
+          echo ""
+          echo "【编译】开始 make iso 编译镜像，并行数 -j$(nproc)"
           make iso -j$(nproc)
+          echo ""
+          echo "✅ ISO镜像编译完成"
+          echo "扫描输出目录:"
+          ls -lh out/target/product/x86_64/*.iso
 
-      - name: Upload ISO
+      - name: 📤 Upload ISO | 上传成品ISO为制品
         uses: actions/upload-artifact@v4
         with:
           name: BlissOS18-typhoon-x86-GApps
           path: out/target/product/x86_64/*.iso
 
-      - name: Complete job
-        run: echo "Build job finished"
+      - name: ✅ Complete job | 任务收尾标记
+        run: |
+          echo "============================================="
+          echo "🎉 整个编译流水线全部执行结束！"
+          echo "============================================="
