@@ -5,6 +5,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # 全局超时兜底，最多90分钟自动终止，防止死循环挂机
+    timeout-minutes: 90
     steps:
       - name: Maximize build space
         uses: easimon/maximize-build-space@v10
@@ -31,13 +33,15 @@ jobs:
         run: |
           mkdir -p bliss && cd bliss
           export REPO_NO_SELFUPDATE=1
+          export PYTHONUNBUFFERED=1
           repo init -u https://github.com/BlissOS/platform_manifest.git -b typhoon-x86
 
-      - name: Repo Sync
+      - name: Repo Sync（Verbose详细日志，实时输出）
         run: |
           cd bliss
           export REPO_NO_SELFUPDATE=1
-          repo sync -c --force-sync --no-tags --no-clone-bundle --optimized-fetch --prune -j$(nproc)
+          export PYTHONUNBUFFERED=1
+          repo sync -c --force-sync --no-tags --no-clone-bundle --optimized-fetch --prune -j$(nproc) --verbose
           repo forall -c git lfs pull
 
       - name: Build GApps ISO
