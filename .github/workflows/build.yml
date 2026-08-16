@@ -9,12 +9,20 @@ jobs:
       - name: Set up job
         uses: actions/checkout@v4
 
+      - name: Free disk first
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo apt clean
+          df -h
+
       - name: Ultra Deep Clean
         run: |
           set -e
           df -h
-          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/hostedtoolcache /opt/ghc
-          sudo rm -rf /usr/share/swift /usr/share/miniconda /usr/local/share/boost /usr/local/share/powershell
+          sudo rm -rf /usr/share/swift /usr/share/miniconda /usr/local/share/powershell
           sudo apt autoremove -y && sudo apt clean
           sudo rm -rf /tmp/* ~/.cache/*
           df -h
