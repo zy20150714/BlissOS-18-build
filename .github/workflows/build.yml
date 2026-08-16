@@ -9,23 +9,14 @@ jobs:
       - name: Set up job
         uses: actions/checkout@v4
 
-      - name: 🧹 Ultra Deep Clean | 极致深度清理（额外清理更多预装组件，最大化释放磁盘）
+      - name: 🧹 Ultra Deep Clean | 极致深度清理（精简版，减少等待）
         run: |
           set -e
-          echo "============================================="
-          echo "【01】清理开始 | 清理前磁盘"
-          echo "============================================="
           df -h
-          echo ""
-          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/hostedtoolcache /opt/ghc /usr/local/share/boost
-          sudo rm -rf /usr/share/swift /usr/share/miniconda /usr/local/share/powershell
-          sudo apt autoremove -y
-          sudo apt clean
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/hostedtoolcache /opt/ghc
+          sudo rm -rf /usr/share/swift /usr/share/miniconda /usr/local/share/boost /usr/local/share/powershell
+          sudo apt autoremove -y && sudo apt clean
           sudo rm -rf /tmp/* ~/.cache/*
-          echo ""
-          echo "============================================="
-          echo "【02】清理结束 | 清理后磁盘"
-          echo "============================================="
           df -h
 
       - name: 📈 Maximize build space | 扩容+Swap配置
@@ -43,7 +34,6 @@ jobs:
           set -e
           sudo apt update
           sudo dpkg --add-architecture i386
-          sudo apt update
           sudo apt install -y git curl gnupg flex bison gperf build-essential zip \
           zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev \
           x11proto-core-dev libx11-dev lib32z-dev libgl1-mesa-dev libxml2-utils xsltproc unzip python3
@@ -59,16 +49,16 @@ jobs:
           git config --global core.compression -1
           git config --global http.postBuffer 524288000
 
-      - name: 🔄 Repo Init voyager-x86
+      - name: 🔄 Repo Init voyager-x86（浅克隆放在这里，合法）
         run: |
           set -e
-          ./repo init -u https://github.com/BlissOS/platform_manifest.git -b voyager-x86 --git-lfs
+          ./repo init -u https://github.com/BlissOS/platform_manifest.git -b voyager-x86 --git-lfs --depth=1
 
-      - name: 🔁 Repo Sync【增加浅克隆参数，降低磁盘占用】
+      - name: 🔁 Repo Sync【合法加速参数，无非法--depth】
         run: |
           set -e
-          echo "【Repo Sync】同步源码，开启浅克隆精简模式，减少磁盘占用"
-          ./repo sync -c -j$(nproc) --verbose --force-sync --no-tags --no-clone-bundle --optimized-fetch --prune --depth=1
+          echo "【Repo Sync】同步源码，浅克隆模式，精简传输提速"
+          ./repo sync -c -j$(nproc) --verbose --force-sync --no-tags --no-clone-bundle --optimized-fetch --prune
           echo "✅ repo sync 源码同步全部完成"
 
       - name: 🏗️ Build GApps ISO
