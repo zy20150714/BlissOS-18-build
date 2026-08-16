@@ -6,26 +6,26 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 480
     steps:
-      - name: Ultra Deep Clean
+      - uses: actions/checkout@v4
+
+      - name: 前置深度清理
         run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/hostedtoolcache
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android /opt/hostedtoolcache
           sudo apt autoremove -y && sudo apt clean
           sudo rm -rf /tmp/* ~/.cache/*
           df -h
 
-      - name: Maximize build space
+      - name: 扩容构建分区（空间挂载到 /build）
         uses: easimon/maximize-build-space@v10
         with:
-          root-reserve-mb: 4096
+          root-reserve-mb: 2048
           remove-dotnet: true
           remove-android: true
           remove-haskell: true
+          remove-docker-images: true
 
-      - name: Install build dependencies
+      - name: 安装编译依赖
         run: |
           set -e
           sudo apt update
@@ -35,7 +35,8 @@ jobs:
           zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev \
           x11proto-core-dev libx11-dev lib32z-dev libgl1-mesa-dev libxml2-utils xsltproc unzip python3
 
-      - name: Fetch local repo script + Git配置
+      - name: 准备repo工具 + Git配置（工作目录切到 /build）
+        working-directory: /build
         run: |
           set -e
           curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo > ./repo
@@ -45,24 +46,29 @@ jobs:
           git config --global user.email "builder@actions.local"
           git config --global core.compression -1
           git config --global http.postBuffer 524288000
-          # 新增：低速断连，防止网络静默卡死
           git config --global http.lowSpeedLimit 1024
           git config --global http.lowSpeedTime 60
+          df -h
 
       - name: Repo Init voyager-x86
+        working-directory: /build
         run: |
           set -e
           ./repo init -u https://github.com/BlissOS/platform_manifest.git -b voyager-x86 --git-lfs --depth=1
 
-      - name: Repo Sync
-        timeout-minutes: 45
+      - name: Repo Sync（降并发+超时保护）
+        timeout-minutes: 60
+        working-directory: /build
         run: |
           set -e
-          echo "开始同步源码，使用浅克隆减少下载体积"
+          echo "开始同步源码"
           ./repo sync -c -j2 --verbose --force-sync --no-tags --no-clone-bundle --optimized-fetch --prune
           echo "源码同步完成"
+          df -h
 
       - name: Build GApps ISO
+        timeout-minutes: 360
+        working-directory: /build
         run: |
           set -e
           source build/envsetup.sh
@@ -74,8 +80,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: BlissOS18-voyager-x86-GApps
-          path: out/target/product/x86_64/*.iso
-
-      - name: Complete job
-        run: |
-          echo "打包流程结束"
+          path: /build/out/target/product/x86_64/*.iso
