@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 480
     steps:
-      - name: 第一步优先清理磁盘，释放空间
+      - name: Ultra Deep Clean
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
@@ -17,8 +17,13 @@ jobs:
           sudo rm -rf /tmp/* ~/.cache/*
           df -h
 
-      - name: Set up job
-        uses: actions/checkout@v4
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v10
+        with:
+          root-reserve-mb: 4096
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
 
       - name: Install build dependencies
         run: |
@@ -40,6 +45,9 @@ jobs:
           git config --global user.email "builder@actions.local"
           git config --global core.compression -1
           git config --global http.postBuffer 524288000
+          # 新增：低速断连，防止网络静默卡死
+          git config --global http.lowSpeedLimit 1024
+          git config --global http.lowSpeedTime 60
 
       - name: Repo Init voyager-x86
         run: |
@@ -47,10 +55,11 @@ jobs:
           ./repo init -u https://github.com/BlissOS/platform_manifest.git -b voyager-x86 --git-lfs --depth=1
 
       - name: Repo Sync
+        timeout-minutes: 45
         run: |
           set -e
           echo "开始同步源码，使用浅克隆减少下载体积"
-          ./repo sync -c -j$(nproc) --verbose --force-sync --no-tags --no-clone-bundle --optimized-fetch --prune
+          ./repo sync -c -j2 --verbose --force-sync --no-tags --no-clone-bundle --optimized-fetch --prune
           echo "源码同步完成"
 
       - name: Build GApps ISO
