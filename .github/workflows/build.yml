@@ -9,7 +9,7 @@ jobs:
       - name: Set up job
         uses: actions/checkout@v4
 
-      - name: 🧹 Ultra Deep Clean | 极致深度清理（精简版，减少等待）
+      - name: Ultra Deep Clean
         run: |
           set -e
           df -h
@@ -19,7 +19,7 @@ jobs:
           sudo rm -rf /tmp/* ~/.cache/*
           df -h
 
-      - name: 📈 Maximize build space | 扩容+Swap配置
+      - name: Maximize build space
         uses: easimon/maximize-build-space@v10
         with:
           swap-size-mb: 16384
@@ -29,16 +29,17 @@ jobs:
           remove-codeql: true
           root-reserve-mb: 512
 
-      - name: 📦 Install build dependencies
+      - name: Install build dependencies
         run: |
           set -e
           sudo apt update
           sudo dpkg --add-architecture i386
+          sudo apt update
           sudo apt install -y git curl gnupg flex bison gperf build-essential zip \
           zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev \
           x11proto-core-dev libx11-dev lib32z-dev libgl1-mesa-dev libxml2-utils xsltproc unzip python3
 
-      - name: 📥 Fetch local repo script + Git配置
+      - name: Fetch local repo script + Git配置
         run: |
           set -e
           curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo > ./repo
@@ -49,19 +50,19 @@ jobs:
           git config --global core.compression -1
           git config --global http.postBuffer 524288000
 
-      - name: 🔄 Repo Init voyager-x86（浅克隆放在这里，合法）
+      - name: Repo Init voyager-x86
         run: |
           set -e
           ./repo init -u https://github.com/BlissOS/platform_manifest.git -b voyager-x86 --git-lfs --depth=1
 
-      - name: 🔁 Repo Sync【合法加速参数，无非法--depth】
+      - name: Repo Sync
         run: |
           set -e
-          echo "【Repo Sync】同步源码，浅克隆模式，精简传输提速"
+          echo "开始同步源码，使用浅克隆减少下载体积"
           ./repo sync -c -j$(nproc) --verbose --force-sync --no-tags --no-clone-bundle --optimized-fetch --prune
-          echo "✅ repo sync 源码同步全部完成"
+          echo "源码同步完成"
 
-      - name: 🏗️ Build GApps ISO
+      - name: Build GApps ISO
         run: |
           set -e
           source build/envsetup.sh
@@ -69,12 +70,12 @@ jobs:
           mka iso_img
           ls -lh out/target/product/x86_64/*.iso
 
-      - name: 📤 Upload ISO
+      - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
           name: BlissOS18-voyager-x86-GApps
           path: out/target/product/x86_64/*.iso
 
-      - name: ✅ Complete job
+      - name: Complete job
         run: |
-          echo "🎉 BlissOS18 流水线结束"
+          echo "打包流程结束"
